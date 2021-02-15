@@ -15,18 +15,29 @@ source:
     - patches/0002-include-local-header-directory.patch  # [win]
 
 build:
+{% if bootstrapping == 'yes' %}
+  # Please increment by two
   number: 0
+  string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_bootstrapping
+{% else %}
+  # Keep above the number of the _bootstrapping package
+  number: 1
+{% endif %}
+  script_env:
+    - BOOTSTRAPPING={{ bootstrapping }}
 
 requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}  # [not win]
+{% if bootstrapping != 'yes' %}
     - make  # [not win]
     - patch  # [unix]
     - m2-patch  # [win]
     - m2-gcc-libs  # [win]
   host:
   run:
+{% endif %}
 
 outputs:
   - name: lz4-c
@@ -35,8 +46,10 @@ outputs:
       run_exports:
         - {{ pin_subpackage(pkg_name, max_pin='x.x') }}
     test:
+{% if bootstrapping != 'yes' %}
       requires:
         - pkg-config  # [unix]
+{% endif %}
 
       commands:
         - lz4 -h
@@ -61,7 +74,9 @@ outputs:
         - if exist %LIBRARY_LIB%\\liblz4_static.lib exit 1  # [win]
 
         - test -f ${PREFIX}/lib/pkgconfig/liblz4.pc  # [unix]
+{% if bootstrapping != 'yes' %}
         - pkg-config --cflags --libs liblz4          # [unix]
+{% endif %}
 
   - name: lz4-c-static
     build:
